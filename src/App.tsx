@@ -6,7 +6,6 @@ import { PlanView } from './components/PlanView';
 import { RAGExplorer } from './components/RAGExplorer';
 import { AgentCoach } from './components/AgentCoach';
 import { WorkspaceSyncHub } from './components/WorkspaceSyncHub';
-import { PythonHub } from './components/PythonHub';
 import { ProfileModal } from './components/ProfileModal';
 import { IntakeSuggestionHub } from './components/IntakeSuggestionHub';
 import { PersonalHealthCheckIn } from './components/PersonalHealthCheckIn';
@@ -30,7 +29,7 @@ import confetti from 'canvas-confetti';
 
 export function App() {
   // Navigation & User State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'intake' | 'checkin' | 'plan' | 'rag' | 'coach' | 'sync' | 'python'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'intake' | 'checkin' | 'plan' | 'rag' | 'coach' | 'sync'>('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -281,7 +280,9 @@ What would you like to optimize today?`,
         body: JSON.stringify({
           message: text,
           profile,
+          macros,
           role: role || 'orchestrator',
+          history: messages.slice(-6),
         }),
       });
 
@@ -498,6 +499,7 @@ You can sync your training sessions to Google Calendar or export your grocery li
             onSendMessage={handleSendMessage}
             isLoading={isSendingMessage}
             onOpenSync={() => setActiveTab('sync')}
+            onOpenIntake={() => setActiveTab('intake')}
           />
         )}
 
@@ -511,21 +513,17 @@ You can sync your training sessions to Google Calendar or export your grocery li
             macros={macros}
           />
         )}
-
-        {activeTab === 'python' && (
-          <PythonHub profile={profile} macros={macros} />
-        )}
       </main>
 
       {/* Immersive UI Telemetry Footer */}
       <footer className="mt-auto shrink-0 bg-slate-900/30 border-t border-white/5 py-4 px-4 sm:px-8 text-[11px] text-slate-500 font-mono flex flex-col sm:flex-row items-center justify-between gap-2 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>PYTHON-AGENT_CORE_3.9 | VECTOR_DB: RAG_METABOLISM_24 | MODEL: GEMINI-3.7-FLASH</span>
+          <span>MULTI-AGENT AI CORE | RAG CLINICAL CORPUS: 20 GUIDELINES | GEMINI-3.7-FLASH</span>
         </div>
         <div className="flex items-center gap-4 text-slate-400">
           <span>WORKSPACE_SYNC: ACTIVE</span>
-          <span>LATENCY: 42ms</span>
+          <span>CALIBRATION: REAL-TIME</span>
         </div>
       </footer>
 

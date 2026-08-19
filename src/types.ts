@@ -247,6 +247,23 @@ export interface PersonalHealthCheckInInput {
   symptomsNarrative: string;
 }
 
+export interface PromptIntentAnalysis {
+  userPromptSummary: string;
+  primaryConcern: string;
+  identifiedStressors: string[];
+  physiologicalGoal: string;
+  suggestedFocusAreas: string[];
+}
+
+export interface CheckInPromptQAPair {
+  id: string;
+  timestamp: string;
+  question: string;
+  answer: string;
+  matchedGuidelineSources: string[];
+  actionableNextSteps: string[];
+}
+
 export interface PersonalizedGuidanceResult {
   bmiAssessment?: {
     bmi: number;
@@ -254,6 +271,8 @@ export interface PersonalizedGuidanceResult {
     waistWarning?: string;
   };
   matchedGuidelines: ClinicalRAGGuideline[];
+  promptIntentAnalysis?: PromptIntentAnalysis;
+  directPromptResponse?: string;
   symptomTriaging: {
     analysis: string;
     whenToSeekCareAlerts: string[];
