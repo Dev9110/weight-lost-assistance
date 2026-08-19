@@ -40,7 +40,7 @@ export function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return {
       name: 'Viyasan',
@@ -68,7 +68,7 @@ export function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return getDefaultMeals(macros);
   });
@@ -78,7 +78,7 @@ export function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return getDefaultWorkouts();
   });
@@ -89,7 +89,7 @@ export function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return [
       { date: '2026-08-18', weightKg: 82.5, notes: 'Starting weigh-in' },
@@ -104,7 +104,7 @@ export function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return [
       {
@@ -146,7 +146,7 @@ export function App() {
       id: 'msg-init',
       sender: 'agent',
       role: 'orchestrator',
-      text: `Hello ${profile.name}! I am your Autonomous Weight Loss & Wellness Agent (Vita Agent v2.0).
+      text: `Hello ${profile.name}! I am your Autonomous Weight Loss & Wellness Agent (Siemens Wellness AI Agent).
 
 Based on your current weight of **${profile.currentWeightKg} kg** and target of **${profile.goalWeightKg} kg**, we have established a **${macros.deficit} kcal/day** caloric deficit targeting **${macros.calories} kcal** with **${macros.proteinGrams}g Protein** (2.0g/kg lean mass).
 

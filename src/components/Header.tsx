@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-500">
-                  VITA AGENT v2.0
+                  Siemens Wellness AI
                 </h1>
                 <span className="hidden sm:inline-block text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   RAG + LLM CORE
@@ -50,11 +50,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-dashboard"
               onClick={() => setActiveTab('dashboard')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'dashboard'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'dashboard'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               Dashboard
@@ -63,11 +62,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-intake"
               onClick={() => setActiveTab('intake')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'intake'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'intake'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-emerald-300 bg-emerald-950/30 border border-emerald-500/20 hover:text-white hover:bg-emerald-900/40'
-              }`}
+                }`}
             >
               <Activity className="w-3.5 h-3.5 text-emerald-400" />
               Personalize AI
@@ -76,11 +74,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-checkin"
               onClick={() => setActiveTab('checkin')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'checkin'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'checkin'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-cyan-300 bg-cyan-950/30 border border-cyan-500/20 hover:text-white hover:bg-cyan-900/40'
-              }`}
+                }`}
             >
               <Stethoscope className="w-3.5 h-3.5 text-cyan-400" />
               Health Check-In
@@ -89,11 +86,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-coach"
               onClick={() => setActiveTab('coach')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'coach'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'coach'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               <Bot className="w-3.5 h-3.5 text-teal-400" />
               AI Coach
@@ -102,11 +98,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-plan"
               onClick={() => setActiveTab('plan')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'plan'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'plan'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               Meals & Training
             </button>
@@ -114,11 +109,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-rag"
               onClick={() => setActiveTab('rag')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'rag'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'rag'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
               RAG Science
@@ -127,11 +121,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-sync"
               onClick={() => setActiveTab('sync')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                activeTab === 'sync'
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'sync'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               Sync Hub
@@ -200,71 +193,64 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="lg:hidden flex items-center gap-2 py-2.5 overflow-x-auto scrollbar-none text-xs border-t border-white/5">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'dashboard'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'dashboard'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-slate-400 bg-slate-900/40'
-            }`}
+              }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setActiveTab('intake')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'intake'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'intake'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-emerald-300 bg-emerald-950/40 border border-emerald-500/20'
-            }`}
+              }`}
           >
             Personalize AI
           </button>
           <button
             onClick={() => setActiveTab('checkin')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'checkin'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'checkin'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-cyan-300 bg-cyan-950/40 border border-cyan-500/20'
-            }`}
+              }`}
           >
             Health Check-In
           </button>
           <button
             onClick={() => setActiveTab('coach')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'coach'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'coach'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-slate-400 bg-slate-900/40'
-            }`}
+              }`}
           >
             AI Coach
           </button>
           <button
             onClick={() => setActiveTab('plan')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'plan'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'plan'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-slate-400 bg-slate-900/40'
-            }`}
+              }`}
           >
             Meals & Training
           </button>
           <button
             onClick={() => setActiveTab('rag')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'rag'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'rag'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-slate-400 bg-slate-900/40'
-            }`}
+              }`}
           >
             RAG Science
           </button>
           <button
             onClick={() => setActiveTab('sync')}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
-              activeTab === 'sync'
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${activeTab === 'sync'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
                 : 'text-slate-400 bg-slate-900/40'
-            }`}
+              }`}
           >
             Sync Hub
           </button>
