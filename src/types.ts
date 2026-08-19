@@ -18,6 +18,82 @@ export interface UserProfile {
   equipmentAvailable?: string[];
   preferredWorkoutDays?: string[];
   dailyCalorieLimit?: number;
+  favoriteFoods?: string[];
+  primaryChallenges?: string[];
+  dailyRoutine?: string;
+  sleepHoursPerNight?: number;
+  sleepTargetHours?: number;
+  workoutDurationMinutes?: number;
+  workoutDaysPerWeek?: number;
+  specialNotes?: string;
+}
+
+export interface UserIntakeDetails {
+  name: string;
+  age: number;
+  gender: 'male' | 'female' | 'other';
+  heightCm: number;
+  currentWeightKg: number;
+  goalWeightKg: number;
+  targetLossPaceKgPerWeek: number;
+  activityLevel: ActivityLevel;
+  dietPreference: DietPreference;
+  dailyRoutine: 'desk_job' | 'standing_light' | 'active_labor' | 'shift_work';
+  sleepHoursPerNight: number;
+  primaryChallenges: string[];
+  favoriteFoods: string[];
+  allergies: string[];
+  equipmentAvailable: 'bodyweight_only' | 'dumbbells_home' | 'full_gym' | 'bands_mat';
+  workoutDurationMinutes: number;
+  workoutDaysPerWeek: number;
+  specialNotes?: string;
+}
+
+export interface AISuggestionResponse {
+  executiveSummary: {
+    bmr: number;
+    tdee: number;
+    targetCalories: number;
+    dailyDeficit: number;
+    estimatedWeeksToGoal: number;
+    overview: string;
+  };
+  macroTargets: {
+    calories: number;
+    proteinGrams: number;
+    carbsGrams: number;
+    fatGrams: number;
+    fiberGrams: number;
+    waterLiters: number;
+    dailyStepsTarget: number;
+  };
+  nutritionStrategy: {
+    headline: string;
+    whyThisWorks: string;
+    suggestedMeals: MealItem[];
+    groceryHighlights: string[];
+  };
+  fitnessStrategy: {
+    headline: string;
+    splitType: string;
+    weeklySessions: WorkoutSession[];
+    neatRecommendations: string;
+  };
+  behavioralProtocol: {
+    primaryChallengeAddressed: string;
+    actionableHabits: string[];
+    psychologicalCopingTechnique: string;
+    sleepOptimizationTip: string;
+  };
+  ragEvidenceGrounding: {
+    paperTitle: string;
+    citation: string;
+    clinicalTakeaway: string;
+  }[];
+  agentThoughtTrace: {
+    agentName: string;
+    reasoning: string;
+  }[];
 }
 
 export interface MacroTargets {
@@ -79,6 +155,17 @@ export interface WeightLogEntry {
   mood?: 'great' | 'good' | 'neutral' | 'struggling';
 }
 
+export interface SleepLogEntry {
+  id: string;
+  date: string;
+  durationHours: number;
+  quality: 'poor' | 'fair' | 'good' | 'deep';
+  bedTime?: string;
+  wakeTime?: string;
+  notes?: string;
+  aiSleepAdvice?: string;
+}
+
 export interface RAGDocument {
   id: string;
   title: string;
@@ -91,7 +178,7 @@ export interface RAGDocument {
 }
 
 export interface AgentReasoningStep {
-  agentName: 'Master Orchestrator' | 'Nutritionist Agent' | 'Fitness Coach Agent' | 'Behavioral Psychologist Agent';
+  agentName: 'Master Orchestrator' | 'Nutritionist Agent' | 'Fitness Coach Agent' | 'Behavioral Psychologist Agent' | string;
   thought: string;
   toolUsed?: string;
   toolResult?: string;
@@ -128,3 +215,56 @@ export interface CalendarEventPayload {
   endDateTime: string;
   eventType: 'workout' | 'meal_prep' | 'fasting_window' | 'weigh_in';
 }
+
+export interface ClinicalRAGGuideline {
+  id: string;
+  source: string;
+  organization: string;
+  topic: string;
+  keywords: string[];
+  population: string[];
+  evidence_level: string;
+  year: number;
+  page: number | null;
+  document_url: string;
+  knowledge_summary: string;
+  recommended_actions: string[];
+  related_topics: string[];
+  when_to_seek_care: string;
+  medical_disclaimer: string;
+  last_verified_date: string;
+  relevanceScore?: number;
+}
+
+export interface PersonalHealthCheckInInput {
+  age?: number | string;
+  sex?: 'female' | 'male' | 'intersex' | 'prefer_not_to_say' | '';
+  height?: number | string;
+  heightUnit?: 'cm' | 'in';
+  weight?: number | string;
+  weightUnit?: 'kg' | 'lbs';
+  lifestylePreferences: string[];
+  symptomsNarrative: string;
+}
+
+export interface PersonalizedGuidanceResult {
+  bmiAssessment?: {
+    bmi: number;
+    category: string;
+    waistWarning?: string;
+  };
+  matchedGuidelines: ClinicalRAGGuideline[];
+  symptomTriaging: {
+    analysis: string;
+    whenToSeekCareAlerts: string[];
+    urgencyLevel: 'low' | 'moderate' | 'high_consult_physician';
+  };
+  evidenceBasedPlan: {
+    nutritionRecommendations: string[];
+    physicalActivityRecommendations: string[];
+    sleepAndBehavioralAdvice: string[];
+  };
+  executiveSummary: string;
+  medicalDisclaimer: string;
+}
+

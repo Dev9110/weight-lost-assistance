@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { UserProfile, MacroTargets, MealItem, WorkoutSession, WeightLogEntry } from '../types';
+import { UserProfile, MacroTargets, MealItem, WorkoutSession, WeightLogEntry, SleepLogEntry } from '../types';
 import { calculateTargetDate } from '../utils/healthCalculators';
-import { Droplet, Flame, Target, Scale, CheckCircle2, Circle, Plus, Calendar, ArrowRight, Zap, Sparkles, Activity, FileText, Check, Cpu } from 'lucide-react';
+import { Droplet, Flame, Target, Scale, CheckCircle2, Circle, Plus, Calendar, ArrowRight, Zap, Sparkles, Activity, FileText, Check, Cpu, Stethoscope } from 'lucide-react';
+import { SleepLogger } from './SleepLogger';
 import confetti from 'canvas-confetti';
 
 interface DashboardProps {
@@ -10,12 +11,16 @@ interface DashboardProps {
   meals: MealItem[];
   workouts: WorkoutSession[];
   weightLogs: WeightLogEntry[];
+  sleepLogs: SleepLogEntry[];
   onLogWeight: (weight: number, notes?: string) => void;
+  onLogSleep: (log: Omit<SleepLogEntry, 'id'>) => Promise<void>;
   onToggleMealLog: (mealId: string) => void;
   onToggleWorkoutLog: (workoutId: string) => void;
   onOpenSync: () => void;
-  onOpenCoach: () => void;
+  onOpenCoach: (prefilledPrompt?: string) => void;
   onOpenPlan: () => void;
+  onOpenIntake: () => void;
+  onOpenCheckIn?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -24,12 +29,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   meals,
   workouts,
   weightLogs,
+  sleepLogs,
   onLogWeight,
+  onLogSleep,
   onToggleMealLog,
   onToggleWorkoutLog,
   onOpenSync,
   onOpenCoach,
   onOpenPlan,
+  onOpenIntake,
+  onOpenCheckIn,
 }) => {
   const [newWeightInput, setNewWeightInput] = useState<string>('');
   const [waterLiters, setWaterLiters] = useState<number>(1.75);
@@ -258,6 +267,67 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
+      {/* Dual Interactive Banners: Health Check-In & Comprehensive AI Personalization */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card 1: Clinical RAG Health Check-In */}
+        <div className="bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-xl shadow-xl flex flex-col justify-between relative overflow-hidden">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-bold flex items-center gap-1">
+                <Stethoscope className="w-3 h-3" />
+                Clinical RAG Engine
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">20 Guidelines</span>
+            </div>
+            <h3 className="text-sm font-bold text-white">Personal Health Check-In</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Describe symptoms, sleep disruptions, or blood pressure concerns to receive instant evidence-backed guidance from NIH, WHO, ADA & AASM.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 font-mono">Symptom triaging & BMI</span>
+            <button
+              id="btn-dashboard-open-checkin"
+              onClick={onOpenCheckIn}
+              className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-cyan-950/40 active:scale-95"
+            >
+              <span>Start Check-In</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Card 2: Comprehensive Multi-Agent Macro Plan */}
+        <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900/60 to-slate-950/60 border border-emerald-500/20 rounded-3xl p-5 backdrop-blur-xl shadow-xl flex flex-col justify-between relative overflow-hidden">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Tailored AI Plan
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">Multi-Agent</span>
+            </div>
+            <h3 className="text-sm font-bold text-white">Comprehensive Transformation Hub</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Generate custom meal recipes, equipment-matched workout splits, grocery checklists, and behavioral craving strategies.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 font-mono">Full recipe & workout split</span>
+            <button
+              id="btn-dashboard-open-intake"
+              onClick={onOpenIntake}
+              className="bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-950/40 active:scale-95"
+            >
+              <span>Personalize My Plan</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Grid: Nutrition Rings & Metabolic Blueprint */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Calorie & Macro Target Breakdown (8 columns) */}
@@ -480,6 +550,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Sleep Duration & Circadian Recovery Section */}
+      <SleepLogger
+        profile={profile}
+        sleepLogs={sleepLogs}
+        onLogSleep={onLogSleep}
+        onOpenCoach={onOpenCoach}
+      />
     </div>
   );
 };

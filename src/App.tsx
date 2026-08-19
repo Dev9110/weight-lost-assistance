@@ -8,13 +8,17 @@ import { AgentCoach } from './components/AgentCoach';
 import { WorkspaceSyncHub } from './components/WorkspaceSyncHub';
 import { PythonHub } from './components/PythonHub';
 import { ProfileModal } from './components/ProfileModal';
+import { IntakeSuggestionHub } from './components/IntakeSuggestionHub';
+import { PersonalHealthCheckIn } from './components/PersonalHealthCheckIn';
 import {
   UserProfile,
   MacroTargets,
   MealItem,
   WorkoutSession,
   WeightLogEntry,
+  SleepLogEntry,
   ChatMessage,
+  AISuggestionResponse,
 } from './types';
 import {
   calculateMacros,
@@ -26,7 +30,7 @@ import confetti from 'canvas-confetti';
 
 export function App() {
   // Navigation & User State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'plan' | 'rag' | 'coach' | 'sync' | 'python'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'intake' | 'checkin' | 'plan' | 'rag' | 'coach' | 'sync' | 'python'>('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -92,6 +96,48 @@ export function App() {
       { date: '2026-08-18', weightKg: 82.5, notes: 'Starting weigh-in' },
       { date: '2026-08-11', weightKg: 83.2 },
       { date: '2026-08-04', weightKg: 83.9 },
+    ];
+  });
+
+  // Sleep Duration & Recovery History
+  const [sleepLogs, setSleepLogs] = useState<SleepLogEntry[]>(() => {
+    const saved = localStorage.getItem('equilibrium_sleep_logs');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'sleep-init-1',
+        date: '2026-08-18',
+        durationHours: 7.5,
+        quality: 'good',
+        bedTime: '23:15',
+        wakeTime: '06:45',
+        notes: 'Felt well-rested, morning natural light exposure',
+        aiSleepAdvice: 'Solid 7.5h duration supports optimal leptin/ghrelin balance and muscular recovery.',
+      },
+      {
+        id: 'sleep-init-2',
+        date: '2026-08-17',
+        durationHours: 8.0,
+        quality: 'deep',
+        bedTime: '22:45',
+        wakeTime: '06:45',
+        notes: 'Deep sleep, cool bedroom 18°C',
+        aiSleepAdvice: '8.0h restorative window triggered peak Slow-Wave Sleep growth hormone release.',
+      },
+      {
+        id: 'sleep-init-3',
+        date: '2026-08-16',
+        durationHours: 6.25,
+        quality: 'fair',
+        bedTime: '00:15',
+        wakeTime: '06:30',
+        notes: 'Late screen exposure before sleep',
+        aiSleepAdvice: 'Mild sleep deficit. Compensated with higher protein satiety and 500ml water pre-meals.',
+      },
     ];
   });
 
@@ -163,6 +209,10 @@ What would you like to optimize today?`,
     localStorage.setItem('equilibrium_weight_logs', JSON.stringify(weightLogs));
   }, [weightLogs]);
 
+  useEffect(() => {
+    localStorage.setItem('equilibrium_sleep_logs', JSON.stringify(sleepLogs));
+  }, [sleepLogs]);
+
   // Auth Handlers
   const handleSignIn = async () => {
     try {
@@ -193,6 +243,15 @@ What would you like to optimize today?`,
     };
     setWeightLogs([newEntry, ...weightLogs.filter((l) => l.date !== today)]);
     setProfile({ ...profile, currentWeightKg: newWeight });
+  };
+
+  // Sleep Logging Handler
+  const handleLogSleep = async (entry: Omit<SleepLogEntry, 'id'>) => {
+    const newEntry: SleepLogEntry = {
+      ...entry,
+      id: `sleep-${Date.now()}`,
+    };
+    setSleepLogs((prev) => [newEntry, ...prev.filter((l) => l.date !== entry.date)]);
   };
 
   // Meal & Workout toggles
@@ -283,6 +342,58 @@ What would you like to optimize today?`,
     handleSendMessage(`Explain the scientific mechanisms behind "${topic}" and how I can apply it to my weight loss plan.`);
   };
 
+  // Apply Full AI Intake Suggestion
+  const handleApplySuggestedPlan = (suggestion: AISuggestionResponse, updatedProfile: UserProfile) => {
+    // 1. Update Profile
+    setProfile(updatedProfile);
+    localStorage.setItem('equilibrium_user_profile', JSON.stringify(updatedProfile));
+
+    // 2. Update Meals from suggestions if available
+    if (suggestion.nutritionStrategy?.suggestedMeals && suggestion.nutritionStrategy.suggestedMeals.length > 0) {
+      const mappedMeals: MealItem[] = suggestion.nutritionStrategy.suggestedMeals.map((m, idx) => ({
+        ...m,
+        id: `ai-suggested-meal-${idx}-${Date.now()}`,
+        logged: false,
+      }));
+      setMeals(mappedMeals);
+      localStorage.setItem('equilibrium_meals', JSON.stringify(mappedMeals));
+    }
+
+    // 3. Update Workouts from suggestions if available
+    if (suggestion.fitnessStrategy?.weeklySessions && suggestion.fitnessStrategy.weeklySessions.length > 0) {
+      const mappedWorkouts: WorkoutSession[] = suggestion.fitnessStrategy.weeklySessions.map((w, idx) => ({
+        ...w,
+        id: `ai-suggested-wo-${idx}-${Date.now()}`,
+        completed: false,
+        syncedToCalendar: false,
+      }));
+      setWorkouts(mappedWorkouts);
+      localStorage.setItem('equilibrium_workouts', JSON.stringify(mappedWorkouts));
+    }
+
+    // 4. Append celebration message to Coach
+    const confirmationMsg: ChatMessage = {
+      id: `msg-applied-${Date.now()}`,
+      sender: 'agent',
+      role: 'orchestrator',
+      text: `🎉 **New Personalized Blueprint Activated for ${updatedProfile.name}!**
+
+I have re-calibrated your entire dashboard, metabolic target (${suggestion.macroTargets.calories} kcal, ${suggestion.macroTargets.proteinGrams}g Protein), custom meals, and training split according to your intake assessment.
+
+- 🥗 **Nutrition Strategy**: ${suggestion.nutritionStrategy.headline}
+- 🏋️‍♂️ **Workout Protocol**: ${suggestion.fitnessStrategy.headline}
+- 🧠 **Behavioral Focus**: ${suggestion.behavioralProtocol.primaryChallengeAddressed}
+
+You can sync your training sessions to Google Calendar or export your grocery list to Google Keep anytime!`,
+      timestamp: new Date().toISOString(),
+      reasoningSteps: suggestion.agentThoughtTrace.map((t) => ({
+        agentName: t.agentName as any,
+        thought: t.reasoning,
+      })),
+    };
+    setMessages((prev) => [...prev, confirmationMsg]);
+  };
+
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col relative overflow-hidden">
       {/* Background Ambient Glow Gradients */}
@@ -310,12 +421,50 @@ What would you like to optimize today?`,
             meals={meals}
             workouts={workouts}
             weightLogs={weightLogs}
+            sleepLogs={sleepLogs}
             onLogWeight={handleLogWeight}
+            onLogSleep={handleLogSleep}
             onToggleMealLog={handleToggleMealLog}
             onToggleWorkoutLog={handleToggleWorkoutLog}
             onOpenSync={() => setActiveTab('sync')}
-            onOpenCoach={() => setActiveTab('coach')}
+            onOpenCoach={(prompt) => {
+              setActiveTab('coach');
+              if (prompt) handleSendMessage(prompt);
+            }}
             onOpenPlan={() => setActiveTab('plan')}
+            onOpenIntake={() => setActiveTab('intake')}
+            onOpenCheckIn={() => setActiveTab('checkin')}
+          />
+        )}
+
+        {activeTab === 'intake' && (
+          <IntakeSuggestionHub
+            currentProfile={profile}
+            onApplyPlan={handleApplySuggestedPlan}
+            onScheduleCalendar={() => setActiveTab('sync')}
+            onExportKeep={() => setActiveTab('sync')}
+            onOpenCoach={(prompt) => {
+              setActiveTab('coach');
+              if (prompt) handleSendMessage(prompt);
+            }}
+          />
+        )}
+
+        {activeTab === 'checkin' && (
+          <PersonalHealthCheckIn
+            currentProfile={profile}
+            onApplyProfileChanges={(changes) => {
+              const updated = { ...profile, ...changes };
+              setProfile(updated);
+              localStorage.setItem('equilibrium_user_profile', JSON.stringify(updated));
+              const newMacros = calculateMacros(updated);
+              setMeals(getDefaultMeals(newMacros));
+            }}
+            onOpenCoachWithContext={(prompt) => {
+              setActiveTab('coach');
+              handleSendMessage(prompt);
+            }}
+            onOpenSyncHub={() => setActiveTab('sync')}
           />
         )}
 
@@ -335,7 +484,10 @@ What would you like to optimize today?`,
         )}
 
         {activeTab === 'rag' && (
-          <RAGExplorer onAskAgentAboutTopic={handleAskAgentAboutTopic} />
+          <RAGExplorer
+            onAskAgentAboutTopic={handleAskAgentAboutTopic}
+            onOpenCheckIn={() => setActiveTab('checkin')}
+          />
         )}
 
         {activeTab === 'coach' && (

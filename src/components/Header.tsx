@@ -1,10 +1,10 @@
 import React from 'react';
-import { Sparkles, Calendar, BookOpen, Bot, Code2, RefreshCw, Flame, LogOut, ShieldCheck, Activity } from 'lucide-react';
+import { Sparkles, Calendar, BookOpen, Bot, Code2, RefreshCw, Flame, LogOut, ShieldCheck, Activity, Stethoscope } from 'lucide-react';
 import { User } from 'firebase/auth';
 
 interface HeaderProps {
-  activeTab: 'dashboard' | 'plan' | 'rag' | 'coach' | 'sync' | 'python';
-  setActiveTab: (tab: 'dashboard' | 'plan' | 'rag' | 'coach' | 'sync' | 'python') => void;
+  activeTab: 'dashboard' | 'intake' | 'checkin' | 'plan' | 'rag' | 'coach' | 'sync' | 'python';
+  setActiveTab: (tab: 'dashboard' | 'intake' | 'checkin' | 'plan' | 'rag' | 'coach' | 'sync' | 'python') => void;
   user: User | null;
   onSignIn: () => void;
   onSignOut: () => void;
@@ -58,6 +58,32 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5" />
               Dashboard
+            </button>
+
+            <button
+              id="nav-intake"
+              onClick={() => setActiveTab('intake')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'intake'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
+                  : 'text-emerald-300 bg-emerald-950/30 border border-emerald-500/20 hover:text-white hover:bg-emerald-900/40'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              Personalize AI
+            </button>
+
+            <button
+              id="nav-checkin"
+              onClick={() => setActiveTab('checkin')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'checkin'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-900/40'
+                  : 'text-cyan-300 bg-cyan-950/30 border border-cyan-500/20 hover:text-white hover:bg-cyan-900/40'
+              }`}
+            >
+              <Stethoscope className="w-3.5 h-3.5 text-cyan-400" />
+              Health Check-In
             </button>
 
             <button
@@ -209,6 +235,26 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('intake')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
+              activeTab === 'intake'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
+                : 'text-emerald-300 bg-emerald-950/40 border border-emerald-500/20'
+            }`}
+          >
+            Personalize AI
+          </button>
+          <button
+            onClick={() => setActiveTab('checkin')}
+            className={`px-3 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
+              activeTab === 'checkin'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold'
+                : 'text-cyan-300 bg-cyan-950/40 border border-cyan-500/20'
+            }`}
+          >
+            Health Check-In
           </button>
           <button
             onClick={() => setActiveTab('plan')}

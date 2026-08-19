@@ -189,6 +189,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
+          {/* Row 4: Water Goal & Sleep Target */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-slate-400 font-bold mb-1.5 font-mono text-[11px] uppercase tracking-wider">
+                Daily Hydration Goal (Liters)
+              </label>
+              <input
+                id="profile-water"
+                type="number"
+                step="0.25"
+                min="1.0"
+                max="8.0"
+                value={formData.waterGoalLiters || 3.0}
+                onChange={(e) => setFormData({ ...formData, waterGoalLiters: parseFloat(e.target.value) || 3.0 })}
+                className="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-400 font-bold mb-1.5 font-mono text-[11px] uppercase tracking-wider">
+                Target Sleep Duration (Hours/Night)
+              </label>
+              <input
+                id="profile-sleep-target"
+                type="number"
+                step="0.5"
+                min="5.0"
+                max="12.0"
+                value={formData.sleepTargetHours || formData.sleepHoursPerNight || 8.0}
+                onChange={(e) => setFormData({ ...formData, sleepTargetHours: parseFloat(e.target.value) || 8.0, sleepHoursPerNight: parseFloat(e.target.value) || 8.0 })}
+                className="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-sans"
+              />
+            </div>
+          </div>
+
           {/* Target Weekly Pace Slider */}
           <div className="bg-slate-950/70 p-5 rounded-2xl border border-white/5 space-y-2.5">
             <div className="flex justify-between items-center">

@@ -264,10 +264,10 @@ export const AgentCoach: React.FC<AgentCoachProps> = ({
         <div className="px-4 py-2.5 bg-slate-950/70 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
           <span className="text-slate-400 font-bold uppercase text-[9px] font-mono shrink-0">Prompts:</span>
           {[
+            'How does sleep duration affect my ghrelin & fat loss?',
+            'Give me a personalized sleep hygiene protocol',
             'How to break a weight loss plateau?',
             'High-protein meal under 500 kcal',
-            'How does sleep affect fat loss hormones?',
-            'Best workout split for fat loss',
             'How to stop evening snacking cravings?',
           ].map((chip, idx) => (
             <button
