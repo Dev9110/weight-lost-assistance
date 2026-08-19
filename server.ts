@@ -50,93 +50,205 @@ async function startServer() {
     }
   });
 
-  // Multi-Agent Chat Endpoint (Agentic AI + RAG)
+  // Multi-Agent Chat Endpoint (Interactive LLM + User Input Criteria + RAG)
   app.post('/api/agent/chat', async (req, res) => {
     try {
-      const { message, profile, currentPlan, role } = req.body;
+      const {
+        message,
+        profile,
+        macros,
+        role = 'orchestrator',
+        history = [],
+        symptomsNarrative = '',
+        lifestylePreferences = [],
+      } = req.body;
 
-      if (!message) {
+      if (!message || !message.trim()) {
         return res.status(400).json({ error: 'Message is required' });
       }
 
-      // Step 1: Perform RAG Retrieval from verified scientific corpus
-      const ragResults = searchRAGKnowledge(message, 3);
+      // Step 1: Perform RAG Retrieval from verified scientific corpus & clinical guidelines
+      const queryText = `${message} ${profile?.dietPreference || ''} ${lifestylePreferences.join(' ')}`;
+      const ragResults = searchRAGKnowledge(queryText, 3);
+      const clinicalResults = searchClinicalGuidelines(queryText, { limit: 2 });
+
       const ragContextText = ragResults
         .map(
           (r, i) =>
-            `[RAG Document ${i + 1}]: "${r.document.title}" (Category: ${r.document.category})\nSummary: ${r.document.summary}\nEvidence: ${r.document.content}\nCitations: ${r.document.citations.join(', ')}`
+            `[Study ${i + 1} - ${r.document.title}]: ${r.document.summary} (Key Takeaway: ${r.document.keyTakeaways[0] || 'Scientific evidence-backed'})`
         )
-        .join('\n\n');
+        .join('\n');
 
-      // Step 2: Formulate Multi-Agent reasoning instruction
+      const clinicalContextText = clinicalResults
+        .map(
+          (c, i) =>
+            `[Guideline ${i + 1} - ${c.guideline.organization} (${c.guideline.year}) - ${c.guideline.topic}]: ${c.guideline.knowledge_summary} (Actions: ${c.guideline.recommended_actions.slice(0, 2).join('; ')})`
+        )
+        .join('\n');
+
+      // Step 2: Formulate Multi-Agent reasoning instruction & Full User Input Criteria Context
       const userProfileStr = profile
-        ? `User Profile:
+        ? `USER INPUT CRITERIA & CURRENT VITALS:
 - Name: ${profile.name || 'User'}
-- Age: ${profile.age}, Gender: ${profile.gender}, Height: ${profile.heightCm}cm
-- Current Weight: ${profile.currentWeightKg}kg, Goal: ${profile.goalWeightKg}kg
-- Weekly Loss Pace Target: ${profile.targetLossPaceKgPerWeek} kg/week
-- Diet: ${profile.dietPreference}, Activity Level: ${profile.activityLevel}
+- Age: ${profile.age || 30} | Biological Sex/Gender: ${profile.gender || 'male'}
+- Height: ${profile.heightCm || 178} cm | Current Weight: ${profile.currentWeightKg || 82.5} kg | Goal Weight: ${profile.goalWeightKg || 74} kg
+- Target Loss Pace: ${profile.targetLossPaceKgPerWeek || 0.5} kg/week
+- Diet Preference: ${profile.dietPreference || 'high_protein'}
+- Activity Level: ${profile.activityLevel || 'moderate'} | Daily Routine: ${profile.dailyRoutine || 'desk_job'}
+- Sleep Baseline: ${profile.sleepHoursPerNight || 7.5} hours/night
+- Daily Calorie Target: ${macros?.calories || profile.dailyCalorieLimit || 1950} kcal (Deficit: ${macros?.deficit || 450} kcal/day)
+- Macros Target: Protein ${macros?.proteinGrams || 165}g | Carbs ${macros?.carbsGrams || 200}g | Fat ${macros?.fatGrams || 54}g | Water: ${profile.waterGoalLiters || 3.0}L
 - Allergies / Exclusions: ${(profile.allergies || []).join(', ') || 'None'}
-- Health Conditions: ${(profile.healthConditions || []).join(', ') || 'None'}`
+- Favorite Foods: ${(profile.favoriteFoods || []).join(', ') || 'Berries, Greek yogurt, chicken, oats, avocado'}
+- Primary Obstacles & Challenges: ${(profile.primaryChallenges || []).join(', ') || 'Evening cravings, desk stiffness'}
+- Equipment: ${profile.equipmentAvailable ? (Array.isArray(profile.equipmentAvailable) ? profile.equipmentAvailable.join(', ') : profile.equipmentAvailable) : 'Dumbbells & bodyweight'}
+- Stated Symptoms / Check-In Notes: "${symptomsNarrative || profile.specialNotes || 'Focusing on consistent fat loss and muscle preservation'}"`
         : 'User Profile: Standard adult aiming for sustainable weight loss.';
 
-      const agentRolePersona = role === 'nutritionist'
-        ? 'You are the Specialized Clinical Nutritionist & Macro Specialist Agent.'
-        : role === 'fitness'
-        ? 'You are the Exercise Physiologist & Resistance Training Coach Agent.'
-        : role === 'behavioral'
-        ? 'You are the Behavioral Psychologist & Habit Architect Agent.'
-        : 'You are the Master Orchestrator Weight Loss AI Coach, leading a team of specialized agents (Nutritionist, Fitness Coach, Behavioral Psychologist).';
+      const agentRolePersona =
+        role === 'nutritionist'
+          ? 'You are the Specialized Clinical Nutritionist & Macro Specialist Agent.'
+          : role === 'fitness'
+          ? 'You are the Exercise Physiologist & Resistance Training Coach Agent.'
+          : role === 'behavioral'
+          ? 'You are the Behavioral Psychologist & Habit Architect Agent.'
+          : role === 'doctor'
+          ? 'You are the Clinical Health Specialist Agent (Triage & Biomarkers).'
+          : 'You are the Master Orchestrator Weight Loss AI Coach, coordinating holistic nutrition, fitness, sleep, and behavioral protocols.';
 
-      const prompt = `You are an expert AI Weight Loss Coach system.
+      const chatHistoryContext =
+        Array.isArray(history) && history.length > 0
+          ? `PREVIOUS CONVERSATION HISTORY:\n` +
+            history
+              .slice(-4)
+              .map((h: any) => `${h.sender === 'user' ? 'User' : 'Coach'}: ${h.text.slice(0, 200)}`)
+              .join('\n')
+          : '';
+
+      const prompt = `You are an elite, highly interactive AI Weight Loss and Wellness Coach running in Google AI Studio.
 ${agentRolePersona}
 
 ${userProfileStr}
 
-RELEVANT SCIENTIFIC RAG EVIDENCE (Use these to ground and cite your advice):
-${ragContextText}
+${chatHistoryContext}
 
-USER QUESTION / INPUT:
+RELEVANT PHYSIOLOGICAL & CLINICAL EVIDENCE GROUNDING:
+${ragContextText}
+${clinicalContextText}
+
+USER QUERY:
 "${message}"
 
 INSTRUCTIONS:
-1. Provide a direct, highly practical, empathetic, and evidence-based answer.
-2. When applicable, quote or cite the relevant biological principles (e.g. Satiety Index, Protein Leverage, NEAT, Sleep/Cortisol, Muscle Protein Synthesis, or Energy Balance).
-3. If the user asks about workouts, schedule, meal prep, or grocery lists, suggest actionable calendar sync or Google Keep notes.
-4. Format your output with clear headings, bullet points, and high readability.`;
+1. Respond with high empathy, deep personalization based on their specific input criteria (name, current weight ${profile?.currentWeightKg || 80}kg, goal weight ${profile?.goalWeightKg || 70}kg, diet ${profile?.dietPreference || 'high-protein'}, calorie target ${macros?.calories || 1950} kcal).
+2. Answer their query thoroughly with scientific clarity, actionable instructions, and specific numerical targets when appropriate.
+3. Structure with clean Markdown (bold points, short lists, and clear headers).
+4. Provide 3 contextual follow-up prompt suggestions that the user can ask next to continue the coaching loop.
+5. Provide 2-3 concrete actionable checklist steps.
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "reply": "Your full, beautifully formatted Markdown response to the user query.",
+  "reasoningSteps": [
+    {
+      "agentName": "Master Orchestrator",
+      "thought": "Analysis of user query in context of their caloric deficit and criteria."
+    },
+    {
+      "agentName": "Nutritionist Agent",
+      "thought": "Macronutrient or behavioral insight grounded in RAG evidence."
+    }
+  ],
+  "suggestedFollowUps": [
+    "Suggested question 1 tailored to user",
+    "Suggested question 2 tailored to user",
+    "Suggested question 3 tailored to user"
+  ],
+  "actionChecklist": [
+    "Actionable step 1",
+    "Actionable step 2"
+  ],
+  "ragCitations": [
+    {
+      "title": "Study or Guideline Name",
+      "source": "Journal or Organization",
+      "snippet": "Brief scientific relevance"
+    }
+  ]
+}`;
 
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
-          systemInstruction: 'You are a warm, scientific, empowering personal health coach specializing in sustainable fat loss and muscle preservation.',
-          temperature: 0.7,
+          responseMimeType: 'application/json',
+          temperature: 0.6,
         },
       });
 
-      const responseText = response.text || 'I have analyzed your request based on nutritional science and your current profile.';
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(response.text || '{}');
+      } catch (err) {
+        console.warn('Gemini chat JSON parse warning:', err);
+      }
 
-      // Extract reasoning steps for agentic transparency
-      const reasoningSteps = [
-        {
-          agentName: 'Master Orchestrator',
-          thought: `Analyzed query intent: "${message.substring(0, 60)}..." and matched user profile targets.`,
-        },
-        {
-          agentName: 'Nutritionist Agent',
-          thought: `Retrieved ${ragResults.length} evidence-based clinical articles on energy balance & macro optimization.`,
-          ragSourcesUsed: ragResults.map((r) => r.document.title),
-        },
-        {
-          agentName: 'Fitness Coach Agent',
-          thought: `Evaluated training periodization, NEAT energy expenditure, and muscle preservation factors.`,
-        },
-      ];
+      if (parsed && parsed.reply) {
+        return res.json({
+          reply: parsed.reply,
+          reasoningSteps: parsed.reasoningSteps || [
+            {
+              agentName: 'Master Orchestrator',
+              thought: `Synthesized user input criteria (${profile?.currentWeightKg}kg -> ${profile?.goalWeightKg}kg) and retrieved evidence.`,
+            },
+            {
+              agentName: role === 'nutritionist' ? 'Nutritionist Agent' : role === 'fitness' ? 'Fitness Coach Agent' : 'Behavioral Psychologist Agent',
+              thought: `Calculated metabolic impact for ${macros?.calories || 1950} kcal target.`,
+              ragSourcesUsed: ragResults.map((r) => r.document.title),
+            },
+          ],
+          suggestedFollowUps: parsed.suggestedFollowUps || [
+            `How should I adjust my ${profile?.dietPreference || 'high protein'} meals on rest days?`,
+            `What is the best way to handle hunger spikes around 4 PM?`,
+            `Can we schedule my next workout split into Google Calendar?`,
+          ],
+          actionChecklist: parsed.actionChecklist || [
+            `Hit your ${macros?.proteinGrams || 160}g daily protein target across 3-4 meals.`,
+            `Maintain a steady ${macros?.deficit || 400} kcal deficit.`,
+            `Log 7.5+ hours of restorative sleep tonight.`,
+          ],
+          ragCitations: parsed.ragCitations || ragResults.map((r) => ({
+            title: r.document.title,
+            source: r.document.citations[0] || 'Clinical Sports Nutrition',
+            snippet: r.document.summary,
+          })),
+        });
+      }
 
+      // Fallback deterministic response if needed
       res.json({
-        reply: responseText,
-        reasoningSteps,
+        reply: `### Personalized Guidance for ${profile?.name || 'You'}\n\nBased on your current weight of **${profile?.currentWeightKg || 82.5} kg** and target of **${profile?.goalWeightKg || 74} kg**, your target intake is **${macros?.calories || 1950} kcal** with **${macros?.proteinGrams || 165}g Protein**.\n\nTo address your query regarding "${message}":\n\n- **Nutritional Consistency**: Maintain your ${profile?.dietPreference || 'high-protein'} macro distribution to preserve lean muscle and trigger satiety peptides (GLP-1, PYY).\n- **Energy Balance**: Your daily deficit of ${macros?.deficit || 450} kcal is optimized for losing 0.5 kg/week without triggering metabolic slowdown.\n- **Recovery & Hormones**: Prioritize 7.5–8.0 hours of sleep to stabilize leptin and cortisol levels.`,
+        reasoningSteps: [
+          {
+            agentName: 'Master Orchestrator',
+            thought: `Evaluated user query "${message.slice(0, 50)}..." against user criteria.`,
+          },
+          {
+            agentName: 'Nutritionist Agent',
+            thought: `Verified macro distribution for ${macros?.calories || 1950} kcal.`,
+            ragSourcesUsed: ragResults.map((r) => r.document.title),
+          },
+        ],
+        suggestedFollowUps: [
+          'How do I break through a weight loss plateau?',
+          'What are high-satiety snack ideas under 200 kcal?',
+          'How can I optimize sleep to reduce morning hunger?',
+        ],
+        actionChecklist: [
+          `Track protein intake towards ${macros?.proteinGrams || 165}g.`,
+          `Drink 3.0L of water spaced evenly throughout the day.`,
+        ],
         ragCitations: ragResults.map((r) => ({
           title: r.document.title,
           source: r.document.citations[0] || 'Clinical Sports Nutrition',
@@ -908,6 +1020,14 @@ ${clinicalContext}
 Respond ONLY with a valid JSON object matching this exact schema:
 {
   "executiveSummary": "Concise 2-sentence clinical synthesis addressing their stated symptoms and BMI profile.",
+  "promptIntentAnalysis": {
+    "userPromptSummary": "A concise 1-sentence breakdown of what the user is asking or reporting in their check-in.",
+    "primaryConcern": "The primary symptom, goal, or lifestyle barrier identified (e.g. Energy dips / Sleep fragmentation / Visceral adiposity / BP regulation).",
+    "identifiedStressors": ["Stressor or symptom 1", "Stressor or symptom 2"],
+    "physiologicalGoal": "Target physiological outcome (e.g. Lower cortisol & stabilize ghrelin, improve insulin sensitivity, reduce arterial pressure).",
+    "suggestedFocusAreas": ["Focus 1", "Focus 2", "Focus 3"]
+  },
+  "directPromptResponse": "A compassionate, comprehensive 3-paragraph clinical doctor & coach response addressing the user's prompt directly, explaining the underlying biology, interpreting their BMI, and giving clear reassurance with evidence citations.",
   "symptomTriaging": {
     "analysis": "Clinical analysis of their symptoms (e.g. insomnia, hypertension sensations, fatigue, dizziness) connecting duration, frequency, and lifestyle interactions.",
     "whenToSeekCareAlerts": [
@@ -951,6 +1071,14 @@ Respond ONLY with a valid JSON object matching this exact schema:
             waistWarning,
           },
           matchedGuidelines,
+          promptIntentAnalysis: parsed.promptIntentAnalysis || {
+            userPromptSummary: symptomsNarrative ? `User reported: "${symptomsNarrative.slice(0, 100)}..."` : 'Standard wellness and metabolic check-in.',
+            primaryConcern: symptomsNarrative ? 'Symptom & lifestyle optimization' : 'General weight & wellness management',
+            identifiedStressors: lifestylePreferences.length ? lifestylePreferences : ['Caloric balance', 'Energy regulation'],
+            physiologicalGoal: `Optimize metabolic markers for BMI ${bmi} (${bmiCategory}) with evidence-backed protocols.`,
+            suggestedFocusAreas: ['Nutrition Density', 'Physical Activity (150+ min)', 'Circadian Sleep Regularity'],
+          },
+          directPromptResponse: parsed.directPromptResponse || `Thank you for sharing your health check-in details. Based on your BMI of ${bmi} (${bmiCategory}) and reported lifestyle patterns, our clinical RAG synthesis indicates strong alignment with evidence-based lifestyle interventions. Prioritizing structured meal timing with adequate protein leverage, 150-300 minutes of weekly activity, and consistent sleep hygiene will significantly improve your metabolic resilience.`,
           symptomTriaging: parsed.symptomTriaging || {
             analysis: 'Based on your reported duration of symptoms, prioritized clinical guidelines suggest structured evaluation.',
             whenToSeekCareAlerts: matchedGuidelines.map((g) => g.when_to_seek_care),
@@ -982,6 +1110,14 @@ Respond ONLY with a valid JSON object matching this exact schema:
             waistWarning,
           },
           matchedGuidelines,
+          promptIntentAnalysis: {
+            userPromptSummary: symptomsNarrative ? `User reported: "${symptomsNarrative.slice(0, 100)}..."` : 'Standard wellness and metabolic check-in.',
+            primaryConcern: symptomsNarrative ? 'Symptom & lifestyle optimization' : 'General weight & wellness management',
+            identifiedStressors: lifestylePreferences.length ? lifestylePreferences : ['Caloric balance', 'Energy regulation'],
+            physiologicalGoal: `Optimize metabolic markers for BMI ${bmi} (${bmiCategory}) with evidence-backed protocols.`,
+            suggestedFocusAreas: ['Nutrition Density', 'Physical Activity (150+ min)', 'Circadian Sleep Regularity'],
+          },
+          directPromptResponse: `Thank you for sharing your health check-in details. Based on your BMI of ${bmi} (${bmiCategory}) and reported symptoms (${symptomsNarrative || 'Routine assessment'}), our clinical triage system has matched ${matchedGuidelines.length} relevant guidelines from ${matchedGuidelines.map(g => g.organization).join(', ')}. Maintaining consistent protein distribution, moderate physical activity (150-300 mins/week), and 7-9 hours of restorative sleep will target the physiological root causes of your symptoms while promoting sustainable fat loss.`,
           symptomTriaging: {
             analysis: `You reported: "${symptomsNarrative || 'Health check-in'}". For symptoms such as sleep disruptions, energy dips, or elevated blood pressure sensations, guidelines strongly recommend tracking duration and frequency.`,
             whenToSeekCareAlerts: matchedGuidelines.map((g) => g.when_to_seek_care),
@@ -1009,6 +1145,96 @@ Respond ONLY with a valid JSON object matching this exact schema:
       }
     } catch (err: any) {
       console.error('Check-in error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Dedicated Follow-up Prompt Q&A Endpoint for Health Check-In
+  app.post('/api/rag/checkin-prompt-qa', async (req, res) => {
+    try {
+      const { question, checkInContext, bmi, lifestylePreferences = [], symptomsNarrative = '' } = req.body;
+      if (!question || !question.trim()) {
+        return res.status(400).json({ error: 'Question is required' });
+      }
+
+      // 1. Search clinical RAG guidelines for the user prompt
+      const query = `${question} ${lifestylePreferences.join(' ')} ${symptomsNarrative}`;
+      const matchedClinical = searchClinicalGuidelines(query, { limit: 3 });
+      const matchedPhysiology = searchRAGKnowledge(query, 2);
+
+      const clinicalContext = matchedClinical
+        .map((m, i) => `[Guideline ${i + 1} - ${m.guideline.organization} (${m.guideline.year}) - ${m.guideline.topic}]: ${m.guideline.knowledge_summary} (Actions: ${m.guideline.recommended_actions.join('; ')})`)
+        .join('\n');
+
+      const physiologicalContext = matchedPhysiology
+        .map((p, i) => `[Physiological Study ${i + 1} - ${p.document.title}]: ${p.document.summary}`)
+        .join('\n');
+
+      const prompt = `You are the Lead Clinical AI Consultant for Vita Agent.
+A user who completed their Personal Health Check-In has asked a direct follow-up question. Answer with high medical accuracy, clinical empathy, and direct scientific backing from the retrieved context.
+
+USER CONTEXT:
+- Calculated BMI: ${bmi || '24.5'}
+- Dietary/Lifestyle: ${lifestylePreferences.length ? lifestylePreferences.join(', ') : 'Standard'}
+- Check-In Symptoms/Narrative: "${symptomsNarrative || 'General health optimization'}"
+- User Question/Prompt: "${question}"
+
+RETRIEVED CLINICAL & PHYSIOLOGICAL CONTEXT:
+${clinicalContext}
+${physiologicalContext}
+
+Respond ONLY with a valid JSON object:
+{
+  "answer": "Clear, direct, and evidence-grounded 2-3 paragraph answer addressing their specific prompt with empathy and actionable clarity.",
+  "matchedGuidelineSources": ["Organization Name / Guideline 1", "Organization Name / Guideline 2"],
+  "actionableNextSteps": [
+    "Concrete step 1",
+    "Concrete step 2",
+    "Concrete step 3"
+  ]
+}`;
+
+      try {
+        const ai = getAi();
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.7-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.4,
+          },
+        });
+
+        const parsed = JSON.parse(response.text || '{}');
+        return res.json({
+          id: `qa-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          question,
+          answer: parsed.answer || `Based on clinical guidelines from ${matchedClinical.map(m => m.guideline.organization).join(', ')}, we recommend aligning this with your current metabolic targets and discussing any medication adjustments with your physician.`,
+          matchedGuidelineSources: parsed.matchedGuidelineSources || matchedClinical.map(m => `${m.guideline.organization}: ${m.guideline.topic}`),
+          actionableNextSteps: parsed.actionableNextSteps || [
+            'Maintain consistent daily protein distribution to support satiety.',
+            'Track your body response over a 7-14 day window.',
+            'Consult your healthcare provider if symptoms persist or escalate.'
+          ],
+        });
+      } catch (aiErr: any) {
+        console.warn('Gemini Q&A error, using fallback:', aiErr);
+        return res.json({
+          id: `qa-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          question,
+          answer: `Regarding your query "${question}": Evidence-based clinical guidelines emphasize that sustainable lifestyle interventions tailored to your BMI (${bmi || 'Normal'}) produce the highest rate of long-term compliance. Combining dietary quality (such as the DASH or Mediterranean pattern) with consistent physical activity (150+ mins/week) and 7+ hours of quality sleep directly regulates key endocrine pathways (insulin, ghrelin, leptin, cortisol).`,
+          matchedGuidelineSources: matchedClinical.map(m => `${m.guideline.organization} (${m.guideline.year})`),
+          actionableNextSteps: [
+            'Focus on whole foods with high satiety ratings (protein and dietary fiber).',
+            'Incorporate 10-15 minute walks after large meals to improve postprandial glucose disposal.',
+            'Maintain regular sleep-wake schedules to stabilize circadian metabolic signaling.'
+          ],
+        });
+      }
+    } catch (err: any) {
+      console.error('Checkin prompt QA error:', err);
       res.status(500).json({ error: err.message });
     }
   });

@@ -1,8 +1,32 @@
 import React, { useState } from 'react';
 import { UserProfile, MacroTargets, MealItem, WorkoutSession, WeightLogEntry, SleepLogEntry } from '../types';
 import { calculateTargetDate } from '../utils/healthCalculators';
-import { Droplet, Flame, Target, Scale, CheckCircle2, Circle, Plus, Calendar, ArrowRight, Zap, Sparkles, Activity, FileText, Check, Cpu, Stethoscope } from 'lucide-react';
+import {
+  Droplet,
+  Flame,
+  Target,
+  Scale,
+  CheckCircle2,
+  Circle,
+  Plus,
+  Calendar,
+  ArrowRight,
+  Zap,
+  Sparkles,
+  Activity,
+  FileText,
+  Check,
+  Cpu,
+  Stethoscope,
+  Bot,
+  Send,
+  RefreshCw,
+  Copy,
+  ChevronRight,
+  BookOpen,
+} from 'lucide-react';
 import { SleepLogger } from './SleepLogger';
+import ReactMarkdown from 'react-markdown';
 import confetti from 'canvas-confetti';
 
 interface DashboardProps {
@@ -43,6 +67,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [newWeightInput, setNewWeightInput] = useState<string>('');
   const [waterLiters, setWaterLiters] = useState<number>(1.75);
 
+  // Quick Dashboard AI Prompt State
+  const [dashboardPrompt, setDashboardPrompt] = useState<string>('');
+  const [isAskingDashboardAi, setIsAskingDashboardAi] = useState<boolean>(false);
+  const [dashboardAiResponse, setDashboardAiResponse] = useState<string | null>(null);
+  const [dashboardAiFollowUps, setDashboardAiFollowUps] = useState<string[]>([]);
+  const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
+
   const targetDateInfo = calculateTargetDate(
     profile.currentWeightKg,
     profile.goalWeightKg,
@@ -81,12 +112,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  const handleQuickDashboardAsk = async (queryText?: string) => {
+    const textToSend = (queryText || dashboardPrompt).trim();
+    if (!textToSend || isAskingDashboardAi) return;
+
+    setIsAskingDashboardAi(true);
+    setDashboardPrompt('');
+
+    try {
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: textToSend,
+          profile,
+          macros,
+          role: 'orchestrator',
+        }),
+      });
+      const data = await res.json();
+      setDashboardAiResponse(data.reply || 'Personalized guidance generated.');
+      setDashboardAiFollowUps(data.suggestedFollowUps || []);
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error(err);
+      setDashboardAiResponse(
+        `For your target of ${profile.goalWeightKg} kg, maintain a ${macros.deficit} kcal deficit, hit ${macros.proteinGrams}g protein, and log 8,000+ steps.`
+      );
+    } finally {
+      setIsAskingDashboardAi(false);
+    }
+  };
+
+  const copyAiResponse = () => {
+    if (!dashboardAiResponse) return;
+    navigator.clipboard.writeText(dashboardAiResponse);
+    setCopiedResponse(true);
+    setTimeout(() => setCopiedResponse(false), 2000);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Section: Agent Logic Engine & Top Stat Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Autonomous Agent Logic Engine Card */}
-        <div className="lg:col-span-4 bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between shadow-2xl">
+        <div className="lg:col-span-4 bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl relative overflow-hidden flex flex-col justify-between shadow-2xl">
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none text-emerald-400">
             <Cpu className="w-20 h-20" />
           </div>
@@ -95,7 +165,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Agent Logic Engine
+                Personalized AI Core
               </h2>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                 ACTIVE
@@ -109,32 +179,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Live Telemetry Status Feeds */}
-            <div className="space-y-2.5 font-mono text-[11px]">
+            <div className="space-y-2 font-mono text-[11px]">
               <div className="flex justify-between items-center text-slate-400">
-                <span>Syncing Google Keep...</span>
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> READY
-                </span>
+                <span>Diet Protocol:</span>
+                <span className="text-emerald-400 font-bold uppercase">{profile.dietPreference.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Parsing Calendar events...</span>
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> ACTIVE
-                </span>
+                <span>Metabolic Deficit:</span>
+                <span className="text-amber-400 font-bold">-{macros.deficit} kcal/day</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Querying Nutrition DB (RAG)...</span>
-                <span className="text-cyan-400 font-bold">INDEXED</span>
+                <span>RAG Scientific Evidence:</span>
+                <span className="text-cyan-400 font-bold">20 GUIDELINES INDEXED</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/5">
+          <div className="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-2">
             <button
-              onClick={onOpenCoach}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all active:scale-98 flex items-center justify-center gap-2"
+              onClick={() => onOpenCoach()}
+              className="py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-slate-950 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
             >
-              <Zap className="w-4 h-4 text-emerald-300" /> Consult Multi-Agent Team
+              <Bot className="w-3.5 h-3.5" />
+              <span>Full AI Coach</span>
+            </button>
+            <button
+              onClick={onOpenIntake}
+              className="py-2.5 bg-slate-950/80 hover:bg-slate-800 border border-emerald-500/30 text-emerald-300 rounded-xl font-bold text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Adjust Criteria</span>
             </button>
           </div>
         </div>
@@ -143,7 +217,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="lg:col-span-8 flex flex-col justify-between gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {/* Current Weight Card */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+            <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
               <div>
                 <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Current Weight</p>
                 <div className="flex items-baseline gap-2 mt-1">
@@ -163,7 +237,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Calorie Target Card */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+            <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
               <div>
                 <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Calorie Target</p>
                 <div className="flex items-baseline gap-2 mt-1">
@@ -180,7 +254,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Weekly Streak Card */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+            <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
               <div>
                 <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Milestone Horizon</p>
                 <div className="flex items-baseline gap-2 mt-1">
@@ -200,7 +274,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Quick Dual Cards: Google Calendar Next Event & Keep Quick Note */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Google Calendar Sync Card */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between shadow-xl">
+            <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -239,7 +313,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Keep Insights Card */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between shadow-xl">
+            <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -265,6 +339,123 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* NEW: Integrated Interactive Dashboard AI Coach Console */}
+      <div className="bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-950/90 border border-emerald-500/30 rounded-3xl p-6 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-4 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-emerald-500/20">
+              <Bot className="w-5 h-5 text-slate-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-base">Interactive Personalized AI Engine</h3>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                  LIVE
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Ask anything about your calories, workout schedule, food swaps, or sleep recovery.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onOpenCoach()}
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20 transition-all self-start sm:self-auto"
+          >
+            <span>Open Dedicated AI Coach</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Dynamic Prompt Suggestion Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 text-xs">
+          <span className="text-[10px] font-mono font-bold uppercase text-slate-400 shrink-0 flex items-center gap-1">
+            <Zap className="w-3 h-3 text-amber-400" />
+            <span>Quick Ask:</span>
+          </span>
+          {[
+            `How should I hit ${macros.proteinGrams}g protein today?`,
+            `What is my optimal deficit for ${profile.goalWeightKg} kg target?`,
+            `Give me a high-satiety evening snack under 150 kcal.`,
+            `How to avoid weight loss plateaus?`,
+          ].map((promptText, pIdx) => (
+            <button
+              key={pIdx}
+              onClick={() => handleQuickDashboardAsk(promptText)}
+              disabled={isAskingDashboardAi}
+              className="px-3 py-1.5 rounded-xl bg-slate-950/70 hover:bg-emerald-950/50 text-slate-300 hover:text-emerald-200 border border-white/5 whitespace-nowrap transition-all text-xs active:scale-95 disabled:opacity-50"
+            >
+              {promptText}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Form */}
+        <div className="flex gap-2">
+          <input
+            id="input-dashboard-ai"
+            type="text"
+            placeholder="Type your health or nutrition question (e.g. 'Can I swap oats for eggs at breakfast?')..."
+            value={dashboardPrompt}
+            onChange={(e) => setDashboardPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleQuickDashboardAsk()}
+            disabled={isAskingDashboardAi}
+            className="flex-1 bg-slate-950/90 border border-white/10 rounded-2xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors font-sans"
+          />
+          <button
+            id="btn-dashboard-ai-send"
+            onClick={() => handleQuickDashboardAsk()}
+            disabled={isAskingDashboardAi || !dashboardPrompt.trim()}
+            className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-slate-950 font-bold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow-lg active:scale-95 disabled:opacity-40 shrink-0"
+          >
+            {isAskingDashboardAi ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            <span>Ask AI</span>
+          </button>
+        </div>
+
+        {/* Live Inline AI Response View */}
+        {dashboardAiResponse && (
+          <div className="bg-slate-950/90 border border-emerald-500/20 rounded-2xl p-5 space-y-3 mt-2 shadow-xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold font-mono uppercase tracking-wider text-emerald-400">
+                  Personalized AI Response
+                </span>
+              </div>
+              <button
+                onClick={copyAiResponse}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5"
+              >
+                {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedResponse ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            <div className="prose prose-invert prose-xs max-w-none text-slate-200 font-sans leading-relaxed">
+              <ReactMarkdown>{dashboardAiResponse}</ReactMarkdown>
+            </div>
+
+            {/* Follow-up Prompts if returned */}
+            {dashboardAiFollowUps.length > 0 && (
+              <div className="pt-3 border-t border-white/5 flex items-center gap-2 flex-wrap text-xs">
+                <span className="text-slate-400 font-mono text-[10px] uppercase font-bold">Suggested Follow-ups:</span>
+                {dashboardAiFollowUps.map((f, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleQuickDashboardAsk(f)}
+                    className="text-emerald-300 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 px-2.5 py-1 rounded-lg text-[11px] transition-all"
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dual Interactive Banners: Health Check-In & Comprehensive AI Personalization */}
@@ -331,7 +522,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Main Grid: Nutrition Rings & Metabolic Blueprint */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Calorie & Macro Target Breakdown (8 columns) */}
-        <div className="lg:col-span-8 bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-6">
+        <div className="lg:col-span-8 bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
@@ -464,7 +655,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Right Column: Hydration & Weight Logger (4 columns) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Hydration Tracker */}
-          <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+          <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
@@ -507,7 +698,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Quick Morning Weight Logger */}
-          <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+          <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 backdrop-blur-2xl shadow-xl space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                 <Scale className="w-4 h-4" />
@@ -531,7 +722,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 id="btn-log-weight"
                 type="submit"
-                className="bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95"
+                className="bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95"
               >
                 Record
               </button>
