@@ -1,0 +1,485 @@
+import React, { useState } from 'react';
+import { UserProfile, MacroTargets, MealItem, WorkoutSession, WeightLogEntry } from '../types';
+import { calculateTargetDate } from '../utils/healthCalculators';
+import { Droplet, Flame, Target, Scale, CheckCircle2, Circle, Plus, Calendar, ArrowRight, Zap, Sparkles, Activity, FileText, Check, Cpu } from 'lucide-react';
+import confetti from 'canvas-confetti';
+
+interface DashboardProps {
+  profile: UserProfile;
+  macros: MacroTargets;
+  meals: MealItem[];
+  workouts: WorkoutSession[];
+  weightLogs: WeightLogEntry[];
+  onLogWeight: (weight: number, notes?: string) => void;
+  onToggleMealLog: (mealId: string) => void;
+  onToggleWorkoutLog: (workoutId: string) => void;
+  onOpenSync: () => void;
+  onOpenCoach: () => void;
+  onOpenPlan: () => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({
+  profile,
+  macros,
+  meals,
+  workouts,
+  weightLogs,
+  onLogWeight,
+  onToggleMealLog,
+  onToggleWorkoutLog,
+  onOpenSync,
+  onOpenCoach,
+  onOpenPlan,
+}) => {
+  const [newWeightInput, setNewWeightInput] = useState<string>('');
+  const [waterLiters, setWaterLiters] = useState<number>(1.75);
+
+  const targetDateInfo = calculateTargetDate(
+    profile.currentWeightKg,
+    profile.goalWeightKg,
+    profile.targetLossPaceKgPerWeek
+  );
+
+  // Compute total logged meals calories and macros
+  const loggedMeals = meals.filter((m) => m.logged);
+  const consumedCalories = loggedMeals.reduce((acc, m) => acc + m.calories, 0);
+  const consumedProtein = loggedMeals.reduce((acc, m) => acc + m.protein, 0);
+  const consumedCarbs = loggedMeals.reduce((acc, m) => acc + m.carbs, 0);
+  const consumedFat = loggedMeals.reduce((acc, m) => acc + m.fat, 0);
+
+  const caloriePercentage = Math.min(100, Math.round((consumedCalories / macros.calories) * 100));
+  const remainingCalories = Math.max(0, macros.calories - consumedCalories);
+
+  // BMI Calculation
+  const heightM = profile.heightCm / 100;
+  const bmi = (profile.currentWeightKg / (heightM * heightM)).toFixed(1);
+
+  const handleAddWater = (amountLiters: number) => {
+    const updated = Math.min(5.0, Math.round((waterLiters + amountLiters) * 100) / 100);
+    setWaterLiters(updated);
+    if (updated >= profile.waterGoalLiters && waterLiters < profile.waterGoalLiters) {
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+    }
+  };
+
+  const handleWeightSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(newWeightInput);
+    if (!isNaN(val) && val > 30 && val < 300) {
+      onLogWeight(val);
+      setNewWeightInput('');
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.7 } });
+    }
+  };
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Top Section: Agent Logic Engine & Top Stat Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Autonomous Agent Logic Engine Card */}
+        <div className="lg:col-span-4 bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between shadow-2xl">
+          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none text-emerald-400">
+            <Cpu className="w-20 h-20" />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Agent Logic Engine
+              </h2>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                ACTIVE
+              </span>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mb-4">
+              <p className="text-xs leading-relaxed text-emerald-100/90 italic font-sans">
+                "Calibrated deficit for {profile.name}: targeting -{profile.targetLossPaceKgPerWeek} kg/wk with {macros.proteinGrams}g Protein ({profile.dietPreference.replace('_', ' ')} protocol). Next resistance split synced to Google Calendar."
+              </p>
+            </div>
+
+            {/* Live Telemetry Status Feeds */}
+            <div className="space-y-2.5 font-mono text-[11px]">
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Syncing Google Keep...</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Check className="w-3 h-3" /> READY
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Parsing Calendar events...</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Check className="w-3 h-3" /> ACTIVE
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Querying Nutrition DB (RAG)...</span>
+                <span className="text-cyan-400 font-bold">INDEXED</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-white/5">
+            <button
+              onClick={onOpenCoach}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all active:scale-98 flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4 text-emerald-300" /> Consult Multi-Agent Team
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column: Hero Metrics 3-Card Strip */}
+        <div className="lg:col-span-8 flex flex-col justify-between gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {/* Current Weight Card */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+              <div>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Current Weight</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-4xl font-black tracking-tighter text-white">{profile.currentWeightKg}</span>
+                  <span className="text-sm text-slate-500 font-semibold font-mono">kg</span>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 shadow-[0_0_8px_#10b981] rounded-full"
+                    style={{ width: `${Math.min(100, (profile.goalWeightKg / profile.currentWeightKg) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-emerald-400 mt-2 font-medium">Goal: {profile.goalWeightKg} kg (BMI {bmi})</p>
+              </div>
+            </div>
+
+            {/* Calorie Target Card */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+              <div>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Calorie Target</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-4xl font-black tracking-tighter text-white">{macros.calories}</span>
+                  <span className="text-sm text-slate-500 font-semibold font-mono">kcal</span>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full w-full bg-cyan-500 shadow-[0_0_8px_#06b6d4] rounded-full" />
+                </div>
+                <p className="text-[10px] text-emerald-400 mt-2 font-medium">-{macros.deficit} kcal deficit vs TDEE ({macros.tdee})</p>
+              </div>
+            </div>
+
+            {/* Weekly Streak Card */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+              <div>
+                <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-wider">Milestone Horizon</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-black tracking-tighter text-white">{targetDateInfo.weeksRemaining}</span>
+                  <span className="text-sm text-slate-500 font-semibold font-mono">weeks</span>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full w-4/5 bg-amber-500 shadow-[0_0_8px_#f59e0b] rounded-full" />
+                </div>
+                <p className="text-[10px] text-cyan-400 mt-2 font-medium truncate">Est: {targetDateInfo.projectedDateString}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Dual Cards: Google Calendar Next Event & Keep Quick Note */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Google Calendar Sync Card */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Google Calendar</h3>
+                  </div>
+                  <button onClick={onOpenSync} className="text-[11px] font-mono text-cyan-400 hover:underline">
+                    SYNC ALL &rarr;
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-3.5 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-white uppercase tracking-tight">Upper Body Hypertrophy</p>
+                      <p className="text-[10px] text-slate-400">Target: Chest & Back • 45m</p>
+                    </div>
+                    <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">
+                      07:30
+                    </span>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-3.5 flex justify-between items-center opacity-70">
+                    <div>
+                      <p className="text-xs font-bold text-white uppercase tracking-tight">Zone 2 Recovery Walk</p>
+                      <p className="text-[10px] text-slate-400">Step Target: 8,500 Steps</p>
+                    </div>
+                    <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded-lg">
+                      18:00
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Keep Insights Card */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-amber-500/20 rounded-xl text-amber-400">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Keep Insights</h3>
+                  </div>
+                  <button onClick={onOpenSync} className="text-[11px] font-mono text-amber-400 hover:underline">
+                    EXPORT &rarr;
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="bg-yellow-500/5 border border-yellow-500/15 rounded-2xl p-3.5">
+                    <p className="text-[9px] text-yellow-300/80 font-mono mb-1">RAG PROTOCOL SYNC</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                      High-Protein Breakfast: Greek yogurt with chia seeds stabilizes ghrelin and delays appetite 4+ hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid: Nutrition Rings & Metabolic Blueprint */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Calorie & Macro Target Breakdown (8 columns) */}
+        <div className="lg:col-span-8 bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-white text-base">Daily Calorie & Macro Budget</h2>
+                <p className="text-xs text-slate-400">Track logged meals against your metabolic targets</p>
+              </div>
+            </div>
+            <button
+              onClick={onOpenPlan}
+              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 transition-colors bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20"
+            >
+              View Full Menu <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Calorie Progress Bar */}
+          <div className="bg-slate-950/60 p-5 rounded-2xl border border-white/5">
+            <div className="flex justify-between items-end mb-2">
+              <div>
+                <span className="text-3xl font-black tracking-tight text-white">{consumedCalories}</span>
+                <span className="text-xs text-slate-400 ml-1.5 font-mono">/ {macros.calories} kcal consumed</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-emerald-400 font-mono">{remainingCalories} kcal remaining</span>
+                <div className="text-[11px] text-slate-500 font-mono">TDEE Baseline: {macros.tdee} kcal</div>
+              </div>
+            </div>
+
+            <div className="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-full transition-all duration-500 shadow-[0_0_10px_#10b981]"
+                style={{ width: `${caloriePercentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Macronutrient Bars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Protein */}
+            <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                  🥩 Protein (MPS)
+                </span>
+                <span className="text-slate-300 font-mono">{consumedProtein}/{macros.proteinGrams}g</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-rose-500 rounded-full transition-all duration-300 shadow-[0_0_6px_#f43f5e]"
+                  style={{ width: `${Math.min(100, (consumedProtein / macros.proteinGrams) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">High leucine for muscle preservation</p>
+            </div>
+
+            {/* Carbs */}
+            <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                  🌾 Complex Carbs
+                </span>
+                <span className="text-slate-300 font-mono">{consumedCarbs}/{macros.carbsGrams}g</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 rounded-full transition-all duration-300 shadow-[0_0_6px_#f59e0b]"
+                  style={{ width: `${Math.min(100, (consumedCarbs / (macros.carbsGrams || 1)) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">Glycogen storage & energy</p>
+            </div>
+
+            {/* Fats */}
+            <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-teal-400 flex items-center gap-1.5">
+                  🥑 Healthy Fats
+                </span>
+                <span className="text-slate-300 font-mono">{consumedFat}/{macros.fatGrams}g</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-teal-400 rounded-full transition-all duration-300 shadow-[0_0_6px_#2dd4bf]"
+                  style={{ width: `${Math.min(100, (consumedFat / macros.fatGrams) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">Hormone & lipid balance</p>
+            </div>
+          </div>
+
+          {/* Today's Meals Quick Check-off */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Today's Meals (Tap to mark eaten)</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {meals.map((meal) => (
+                <div
+                  key={meal.id}
+                  onClick={() => onToggleMealLog(meal.id)}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                    meal.logged
+                      ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                      : 'bg-slate-950/50 border-white/5 hover:border-slate-700 text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {meal.logged ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-600 shrink-0" />
+                    )}
+                    <div className="truncate">
+                      <div className="text-xs font-semibold truncate capitalize">{meal.type}: {meal.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        {meal.calories} kcal • {meal.protein}g Protein
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-white/5 shrink-0">
+                    {meal.satietyIndex.replace('_', ' ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Hydration & Weight Logger (4 columns) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Hydration Tracker */}
+          <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+                  <Droplet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Hydration Kinetic Goal</h3>
+                  <p className="text-[11px] text-slate-400">Enhances cellular lipolysis</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-sky-400 font-mono">{waterLiters.toFixed(2)} / {profile.waterGoalLiters} L</span>
+            </div>
+
+            <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-sky-500 to-blue-400 rounded-full transition-all duration-300 shadow-[0_0_8px_#38bdf8]"
+                style={{ width: `${Math.min(100, (waterLiters / profile.waterGoalLiters) * 100)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-add-water-250"
+                onClick={() => handleAddWater(0.25)}
+                className="flex-1 py-2 px-3 bg-slate-950/60 hover:bg-slate-800 border border-white/5 rounded-xl text-xs font-semibold text-sky-300 transition-all flex items-center justify-center gap-1 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> +250 mL
+              </button>
+              <button
+                id="btn-add-water-500"
+                onClick={() => handleAddWater(0.5)}
+                className="flex-1 py-2 px-3 bg-slate-950/60 hover:bg-slate-800 border border-white/5 rounded-xl text-xs font-semibold text-sky-300 transition-all flex items-center justify-center gap-1 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> +500 mL
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 italic text-center">
+              Preloading 500 mL water 20m before meals increases lipolytic rate.
+            </p>
+          </div>
+
+          {/* Quick Morning Weight Logger */}
+          <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <Scale className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">Log Morning Weight</h3>
+                <p className="text-[11px] text-slate-400">Post-washroom, fasted baseline</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleWeightSubmit} className="flex gap-2">
+              <input
+                id="input-weight"
+                type="number"
+                step="0.1"
+                placeholder={`e.g. ${profile.currentWeightKg}`}
+                value={newWeightInput}
+                onChange={(e) => setNewWeightInput(e.target.value)}
+                className="flex-1 bg-slate-950/80 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
+              />
+              <button
+                id="btn-log-weight"
+                type="submit"
+                className="bg-gradient-to-r from-emerald-600 to-cyan-700 hover:from-emerald-500 hover:to-cyan-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95"
+              >
+                Record
+              </button>
+            </form>
+
+            {/* Recent Weight Log History */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Recent Weigh-Ins</div>
+              {weightLogs.slice(0, 3).map((log, idx) => (
+                <div key={idx} className="flex justify-between items-center text-xs py-1.5 px-3 rounded-xl bg-slate-950/40 border border-white/5 font-mono">
+                  <span className="text-slate-400">{log.date}</span>
+                  <span className="font-bold text-white">{log.weightKg} kg</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

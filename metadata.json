@@ -1,0 +1,6 @@
+{
+  "name": "AI Weight Loss & Wellness Coach",
+  "description": "Personalized weight loss companion with RAG-powered nutrition & fitness knowledge, Agentic AI planner, and Google Calendar & Google Keep integrations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
